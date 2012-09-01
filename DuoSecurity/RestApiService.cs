@@ -24,8 +24,10 @@ namespace DuoVerificationService
             _host = host;
         }
 
-        public Object QueryDuoApi(IHttpWebRequest duoWebRequest)
+        public Object QueryDuoApi(IHttpWebRequestFactory webRequestFactory, string protocol, string path, HttpWebRequestMethod method, IEnumerable<KeyValuePair<string, string>> queryValues)
         {
+            var duoWebRequest = CreateSignedDuoWebRequest(webRequestFactory, protocol, path, method, queryValues);
+
             try
             {
                 var duoResponse = duoWebRequest.GetResponse();
@@ -51,7 +53,7 @@ namespace DuoVerificationService
             return null;
         }
 
-        public IHttpWebRequest CreateSignedDuoWebRequest(IHttpWebRequestFactory webRequestFactory, string protocol, string path, HttpWebRequestMethod method, IEnumerable<KeyValuePair<string, string>> queryValues)
+        private IHttpWebRequest CreateSignedDuoWebRequest(IHttpWebRequestFactory webRequestFactory, string protocol, string path, HttpWebRequestMethod method, IEnumerable<KeyValuePair<string, string>> queryValues)
         {
             var duoWebRequest = CreateDuoWebRequest(webRequestFactory, protocol, path, method);
 
@@ -59,7 +61,7 @@ namespace DuoVerificationService
 
             SignWebRequest(duoWebRequest, method, path, safeQueryString);
 
-            if(method == HttpWebRequestMethod.POST)SetFormValuesForQuery(duoWebRequest, safeQueryString);
+            if (method == HttpWebRequestMethod.POST) SetFormValuesForQuery(duoWebRequest, safeQueryString);
 
             return duoWebRequest;
         }
@@ -78,7 +80,7 @@ namespace DuoVerificationService
             webRequest.Headers.Add("Authorization", string.Format("Basic {0}", GetAuthorizationKey(method, path, queryString)));
         }
 
-        private IHttpWebRequest CreateDuoWebRequest(IHttpWebRequestFactory webRequestFactory, string protocol, string path,  HttpWebRequestMethod method)
+        private IHttpWebRequest CreateDuoWebRequest(IHttpWebRequestFactory webRequestFactory, string protocol, string path, HttpWebRequestMethod method)
         {
             var duoWebRequest = webRequestFactory.Create(new Uri(string.Format(@"{0}://{1}{2}", protocol, _host, path)));
             duoWebRequest.Method = method;

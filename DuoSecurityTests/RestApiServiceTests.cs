@@ -15,7 +15,33 @@ namespace DuoSecurityTests
         const string IntegrationKey = "1234";
         const string SecretKey = "abcd";
         const string Host = "api-xxxxxxxx.duosecurity.com";
+        private Mock<IHttpWebRequest> _mockWebRequest;
+        private Mock<IHttpWebRequestFactory> _mockWebRequestFactory;
+        private List<KeyValuePair<string, string>> _queryItems;
 
+        [SetUp]
+        public void Setup()
+        {
+            _queryItems = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("auto", "phone1"),
+                    new KeyValuePair<string, string>("factor", "auto"),
+                    new KeyValuePair<string, string>("ipaddr", "141.213.231.43"),
+                    new KeyValuePair<string, string>("user", "bob")
+                };
+
+            _mockWebRequest = new Mock<IHttpWebRequest>(MockBehavior.Strict);
+            _mockWebRequest.SetupSet(o => o.Method = HttpWebRequestMethod.POST).Verifiable("Method not correctly set");
+            _mockWebRequest.SetupSet(o => o.Accept = "application/json").Verifiable("Json not set as acceptable");
+            _mockWebRequest.SetupSet(o => o.Timeout = 180000).Verifiable("Timeout is not set");
+            _mockWebRequest.SetupSet(o => o.ContentType = "application/x-www-form-urlencoded").Verifiable("Form content type is not set");
+            _mockWebRequest.Setup(o => o.Headers.Add("Authorization", "Basic MTIzNDpmNDYzM2YzZWNhOGQ2YmFmNzk5Mzc5ZDgzMGM3YmU2ODA1Y2FkMWQ2")).Verifiable("Authorization header not added");
+            _mockWebRequest.Setup(o => o.GetRequestStream()).Returns(new MemoryStream()).Verifiable("Request stream is not returned");
+
+            _mockWebRequestFactory = new Mock<IHttpWebRequestFactory>(MockBehavior.Strict);
+            _mockWebRequestFactory.Setup(o => o.Create(new Uri("https://api-xxxxxxxx.duosecurity.com/rest/v1/auth"))).Returns(_mockWebRequest.Object).Verifiable("Uri was incorrect");
+
+        }
 
         [Test]
         public void AuthorizationKeyShouldBeCorrectlyCalculated()
@@ -33,32 +59,17 @@ namespace DuoSecurityTests
         public void CreateSignedDuoWebRequestShouldReturnAWebRequestWhoseHeaderHasHadAuthorizationAddedTo()
         {
             // Arrange
-            var queryItems = new List<KeyValuePair<string, string>>
-                {
-                    new KeyValuePair<string, string>("auto", "phone1"),
-                    new KeyValuePair<string, string>("factor", "auto"),
-                    new KeyValuePair<string, string>("ipaddr", "141.213.231.43"),
-                    new KeyValuePair<string, string>("user", "bob")
-                };
-
-            var mockWebRequest = new Mock<IHttpWebRequest>(MockBehavior.Strict);
-            mockWebRequest.SetupSet(o => o.Method = HttpWebRequestMethod.POST).Verifiable("Method not correctly set");
-            mockWebRequest.SetupSet(o => o.Accept = "application/json").Verifiable("Json not set as acceptable");
-            mockWebRequest.SetupSet(o => o.Timeout = 180000).Verifiable("Timeout is not set");
-            mockWebRequest.SetupSet(o => o.ContentType = "application/x-www-form-urlencoded").Verifiable("Form content type is not set");
-            mockWebRequest.Setup(o => o.Headers.Add("Authorization", "Basic MTIzNDpmNDYzM2YzZWNhOGQ2YmFmNzk5Mzc5ZDgzMGM3YmU2ODA1Y2FkMWQ2")).Verifiable("Authorization header not added");
-            mockWebRequest.Setup(o => o.GetRequestStream()).Returns(new MemoryStream()).Verifiable("Request stream is not returned");
-
-            var mockWebRequestFactory = new Mock<IHttpWebRequestFactory>(MockBehavior.Strict);
-            mockWebRequestFactory.Setup(o => o.Create(new Uri("https://api-xxxxxxxx.duosecurity.com/rest/v1/auth"))).Returns(mockWebRequest.Object).Verifiable("Uri was incorrect");
+            var mockWebResponse = new Mock<IHttpWebResponse>(MockBehavior.Strict);
+            mockWebResponse.Setup(o => o.GetResponseStream()).Returns(new MemoryStream());
+            _mockWebRequest.Setup(o => o.GetResponse()).Returns(mockWebResponse.Object);
 
             // Act
             var sut = new RestApiService(IntegrationKey, SecretKey, Host);
-            sut.CreateSignedDuoWebRequest(mockWebRequestFactory.Object, "https", "/rest/v1/auth", HttpWebRequestMethod.POST, queryItems);
+            sut.QueryDuoApi(_mockWebRequestFactory.Object, "https", "/rest/v1/auth", HttpWebRequestMethod.POST, _queryItems);
 
             // Assert
-            mockWebRequestFactory.Verify();
-            mockWebRequest.Verify();
+            _mockWebRequestFactory.Verify();
+            _mockWebRequest.Verify();
         }
 
         [Test]
@@ -67,34 +78,29 @@ namespace DuoSecurityTests
             // Arrange
             var mockWebResponse = new Mock<IHttpWebResponse>(MockBehavior.Strict);
             mockWebResponse.Setup(o => o.GetResponseStream()).Returns(new MemoryStream()).Verifiable();
-
-            var mockWebRequest = new Mock<IHttpWebRequest>(MockBehavior.Strict);
-            mockWebRequest.Setup(o => o.GetResponse()).Returns(mockWebResponse.Object);
-
+            _mockWebRequest.Setup(o => o.GetResponse()).Returns(mockWebResponse.Object);
 
             // Act
             var sut = new RestApiService(IntegrationKey, SecretKey, Host);
-            var result = sut.QueryDuoApi(mockWebRequest.Object);
+            sut.QueryDuoApi(_mockWebRequestFactory.Object, "https", "/rest/v1/auth", HttpWebRequestMethod.POST, _queryItems);
 
             // Assert
-            mockWebRequest.Verify();
+            _mockWebRequest.Verify();
         }
 
         [Test]
         public void QueryDuoApiShouldResturnNullIfGetResponseReturnsNull()
         {
             // Arrange
-            var mockWebRequest = new Mock<IHttpWebRequest>();
-            mockWebRequest.Setup(o => o.GetResponse()).Returns((IHttpWebResponse)null);
-
+            _mockWebRequest.Setup(o => o.GetResponse()).Returns((IHttpWebResponse)null);
 
             // Act
             var sut = new RestApiService(IntegrationKey, SecretKey, Host);
-            var result = sut.QueryDuoApi(mockWebRequest.Object);
+            var result = sut.QueryDuoApi(_mockWebRequestFactory.Object, "https", "/rest/v1/auth", HttpWebRequestMethod.POST, _queryItems);
 
             // Assert
-            Assert.That(result,Is.Null);
-  
+            Assert.That(result, Is.Null);
+
         }
 
         [Test]
@@ -103,13 +109,11 @@ namespace DuoSecurityTests
             // Arrange
             var mockWebResponse = new Mock<IHttpWebResponse>();
             mockWebResponse.Setup(o => o.GetResponseStream()).Returns((Stream)null);
-
-            var mockWebRequest = new Mock<IHttpWebRequest>();
-            mockWebRequest.Setup(o => o.GetResponse()).Returns(mockWebResponse.Object);
+            _mockWebRequest.Setup(o => o.GetResponse()).Returns(mockWebResponse.Object);
 
             // Act
             var sut = new RestApiService(IntegrationKey, SecretKey, Host);
-            var result = sut.QueryDuoApi(mockWebRequest.Object);
+            var result = sut.QueryDuoApi(_mockWebRequestFactory.Object, "https", "/rest/v1/auth", HttpWebRequestMethod.POST, _queryItems);
 
             // Assert
             Assert.That(result, Is.Null);
@@ -120,17 +124,15 @@ namespace DuoSecurityTests
         public void QueryDuoApiShouldReturnNullIfThereIsAnException()
         {
             // Arrange
-            var mockWebRequest = new Mock<IHttpWebRequest>();
-            mockWebRequest.Setup(o => o.GetResponse()).Throws(new WebException());
-
+            _mockWebRequest.Setup(o => o.GetResponse()).Throws(new WebException());
 
             // Act
             var sut = new RestApiService(IntegrationKey, SecretKey, Host);
-            var result = sut.QueryDuoApi(mockWebRequest.Object);
+            var result = sut.QueryDuoApi(_mockWebRequestFactory.Object, "https", "/rest/v1/auth", HttpWebRequestMethod.POST, _queryItems);
 
             // Assert
             Assert.That(result, Is.Null);
-  
+
         }
     }
 }

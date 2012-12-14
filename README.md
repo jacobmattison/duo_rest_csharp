@@ -14,7 +14,6 @@ QueryDuoApi runs the get or post and passes back the results
 - Nunit
 
 # Example
-<<<<<<< HEAD
 An example call:
 
 const string IntegrationKey2 = "XXXXXXXXXXXXX";  
@@ -40,6 +39,4 @@ private static IEnumerable<KeyValuePair<string, string>> GetQueryValues(string u
 	return ps;  
 }  
   
-=======
 Examples are now stored in the example project - DuoSecurity.Examples
->>>>>>> Moved examples to a project

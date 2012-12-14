@@ -17,6 +17,12 @@ namespace DuoVerificationService
         private readonly string _secretKey;
         private readonly string _host;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="integrationKey"></param>
+        /// <param name="secretKey"></param>
+        /// <param name="host"></param>
         public RestApiService(string integrationKey, string secretKey, string host)
         {
             _integrationKey = integrationKey;

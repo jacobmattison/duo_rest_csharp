@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using DuoSecurity.Examples;
 using DuoVerificationService;
 using HttpWebAdapters;
 using Moq;
@@ -12,9 +13,9 @@ namespace DuoSecurityTests
     [TestFixture]
     public class RestApiServiceTests
     {
-        const string IntegrationKey = "1234";
-        const string SecretKey = "abcd";
-        const string Host = "api-xxxxxxxx.duosecurity.com";
+        const string IntegrationKey = "DI8H9RXW9RFXGRGG4E64";
+        const string SecretKey = "HlRW6cH7dcYe5SDUpKpQ9Q0pXKPoLlZNVCAo0qEF";
+        const string Host = "api-f8aa1baa.duosecurity.com";
         private Mock<IHttpWebRequest> _mockWebRequest;
         private Mock<IHttpWebRequestFactory> _mockWebRequestFactory;
         private List<KeyValuePair<string, string>> _queryItems;
@@ -134,5 +135,31 @@ namespace DuoSecurityTests
             Assert.That(result, Is.Null);
 
         }
+
+        [Test]
+        public void test()
+        {
+            var sut = new BasicExample();
+            sut.RunAuthorization();
+
+            //var sut = new RestApiService(IntegrationKey, SecretKey, Host);
+            //var result = sut.GetAuthorizationKey(HttpWebRequestMethod.POST, "/verify/v1/call", "message=Your%20PIN%20is%20%3Cpin%3E&phone=%2B15555555555");
+
+            //// Assert
+            //Assert.That(result, Is.EqualTo("MTIzNDo2NjRlOTE1MDgyYTI0YmZhMjBiNzQ0YzY3NThmNGZmZGU3MzhmMjBi"));
+        }
+
+        [Test]
+        public void AuthorizationKeyShouldBeCorrectlyCalculated2()
+        {
+            // Arrange
+            // Act
+            var sut = new RestApiService("DIA1AQJCU97DCLD11AZE", "TZOiTvqx3xb8VuBBaF7ewtYSsqnfUfTq8V6W3EsT", "api-f8aa1baa.duosecurity.com");
+            var result = sut.GetAuthorizationKey(HttpWebRequestMethod.POST, "/verify/v1/call", "message=the%20pin%20is%20%3Cpin%3E&phone=%2B447952556282");
+
+            // Assert
+            Assert.That(result, Is.EqualTo("RElBMUFRSkNVOTdEQ0xEMTFBWkU6ZTgxMjQwMGY2NjhhNTc3NDQ0MmQ0NGUyMGYxZTA4YmUzZWQzZWZhMA=="));
+        }
+
     }
 }

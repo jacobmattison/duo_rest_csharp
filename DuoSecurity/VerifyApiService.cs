@@ -5,19 +5,20 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Script.Serialization;
 using HttpWebAdapters;
 
 namespace DuoVerificationService
 {
-    public class RestApiService
+    public class VerifyApiService
     {
         private readonly string _integrationKey;
         private readonly string _secretKey;
         private readonly string _host;
 
-        public RestApiService(string integrationKey, string secretKey, string host)
+        public VerifyApiService(string integrationKey, string secretKey, string host)
         {
             _integrationKey = integrationKey;
             _secretKey = secretKey;
@@ -46,7 +47,7 @@ namespace DuoVerificationService
                     }
                 }
             }
-            catch (WebException)
+            catch (WebException exception)
             {
                 return null;
             }
@@ -57,11 +58,14 @@ namespace DuoVerificationService
         {
             var duoWebRequest = CreateDuoWebRequest(webRequestFactory, protocol, path, method);
 
-            var safeQueryString = "message=Your%20PIN%20is%20%3Cpin%3E&phone=%2B447952556282"; // CreateSafeQueryString(queryValues);
+            var safeQueryString = CreateSafeQueryString(queryValues);
 
-            SignWebRequest(duoWebRequest, method, path, safeQueryString);
+            var reg = new Regex(@"%[a-f0-9]{2}");
+            var upperUrl = reg.Replace(safeQueryString, m => m.Value.ToUpperInvariant());
 
-            if (method == HttpWebRequestMethod.POST) SetFormValuesForQuery(duoWebRequest, safeQueryString);
+            SignWebRequest(duoWebRequest, method, path, upperUrl);
+
+            if (method == HttpWebRequestMethod.POST) SetFormValuesForQuery(duoWebRequest, upperUrl);
 
             return duoWebRequest;
         }
@@ -107,7 +111,19 @@ namespace DuoVerificationService
         /// <returns></returns>
         private static string CreateSafeQueryString(IEnumerable<KeyValuePair<string, string>> queryStringItems)
         {
-            return string.Join("&", (from queryStringItem in queryStringItems let key = HttpUtility.UrlEncode(queryStringItem.Key, Encoding.UTF8).Replace("+", "%20").Replace("*", "%2A").Replace("%7E", "~") let value = HttpUtility.UrlEncode(queryStringItem.Value, Encoding.UTF8).Replace("+", "%20").Replace("*", "%2A").Replace("%7E", "~") select string.Format("{0}={1}", key, value)).ToArray());
+            var url = string.Join("&", (from queryStringItem in queryStringItems
+                                        let key =
+                                            HttpUtility.UrlEncode(queryStringItem.Key, Encoding.UTF8)
+                                            .Replace("+", "%20")
+                                            .Replace("*", "%2A")
+                                            .Replace("%7E", "~")
+                                        let value =
+                                            HttpUtility.UrlEncode(queryStringItem.Value, Encoding.UTF8)
+                                            .Replace("+", "%20")
+                                            .Replace("*", "%2A")
+                                            .Replace("%7E", "~")
+                                        select string.Format("{0}={1}", key, value)).ToArray());
+            return url;
         }
 
         /// <summary>

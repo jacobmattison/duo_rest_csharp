@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HttpWebAdapters;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Script.Serialization;
-using HttpWebAdapters;
+
 
 namespace DuoVerificationService
 {

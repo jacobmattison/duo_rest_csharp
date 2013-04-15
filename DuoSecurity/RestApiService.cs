@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HttpWebAdapters;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Web;
 using System.Web.Script.Serialization;
-using HttpWebAdapters;
+
 
 namespace DuoVerificationService
 {
@@ -63,7 +64,7 @@ namespace DuoVerificationService
         {
             var duoWebRequest = CreateDuoWebRequest(webRequestFactory, protocol, path, method);
 
-            var safeQueryString = "message=Your%20PIN%20is%20%3Cpin%3E&phone=%2B447952556282"; // CreateSafeQueryString(queryValues);
+            var safeQueryString = CreateSafeQueryString(queryValues);
 
             SignWebRequest(duoWebRequest, method, path, safeQueryString);
 

@@ -47,8 +47,8 @@
     <Compile Include="VerifyApiService.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\github\SolrNet\HttpWebAdapters\HttpWebAdapters.csproj">
-      <Project>{AE7D2A46-3F67-4986-B04B-7DCE79A549A5}</Project>
+    <ProjectReference Include="..\HttpWebAdapters\HttpWebAdapters.csproj">
+      <Project>{ae7d2a46-3f67-4986-b04b-7dce79a549a5}</Project>
       <Name>HttpWebAdapters</Name>
     </ProjectReference>
   </ItemGroup>

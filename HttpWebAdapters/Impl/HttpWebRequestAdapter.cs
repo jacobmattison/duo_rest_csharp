@@ -561,6 +561,12 @@ namespace HttpWebAdapters.Adapters {
 			set { request.UserAgent = value; }
 		}
 
+    public DateTime Date
+    {
+      get { return request.Date;}
+      set{ request.Date = value; }
+    }
+
 		///<summary>
 		///Gets or sets the value of the Expect HTTP header.
 		///</summary>

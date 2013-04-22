@@ -429,6 +429,12 @@ namespace HttpWebAdapters {
 		///
 		string UserAgent { get; set; }
 
+
+    /// <summary>
+    /// Gets or sets the Date HTTP header
+    /// </summary>
+    DateTime Date {get; set;}
+
 		/// <summary>
 		///Gets or sets the value of the Expect HTTP header.
 		/// </summary>

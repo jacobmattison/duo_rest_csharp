@@ -62,6 +62,7 @@ namespace DuoVerificationService
 
         private IHttpWebRequest CreateSignedDuoWebRequest(IHttpWebRequestFactory webRequestFactory, string protocol, string path, HttpWebRequestMethod method, IEnumerable<KeyValuePair<string, string>> queryValues)
         {
+            queryValues = queryValues.OrderBy(item => item.Key);
             var duoWebRequest = CreateDuoWebRequest(webRequestFactory, protocol, path, method);
 
             var safeQueryString = CreateSafeQueryString(queryValues);
@@ -73,9 +74,9 @@ namespace DuoVerificationService
             return duoWebRequest;
         }
 
-        public string GetAuthorizationKey(HttpWebRequestMethod method, string path, string queryString)
+        public string GetAuthorizationKey(HttpWebRequestMethod method, DateTime date, string path, string queryString)
         {
-            var canon = GetCanonRequest(method, _host, path, queryString);
+            var canon = GetCanonRequest(date, method, _host, path, queryString);
             var signedCanon = SignHmac(_secretKey, canon);
 
             var authorization = _integrationKey + ":" + signedCanon;
@@ -84,7 +85,9 @@ namespace DuoVerificationService
 
         private void SignWebRequest(IHttpWebRequest webRequest, HttpWebRequestMethod method, string path, string queryString)
         {
-            webRequest.Headers.Add("Authorization", string.Format("Basic {0}", GetAuthorizationKey(method, path, queryString)));
+            DateTime now = DateTime.Now;
+            webRequest.Headers.Add("Authorization", string.Format("Basic {0}", GetAuthorizationKey(method, now, path, queryString)));
+            webRequest.Date = now;
         }
 
         private IHttpWebRequest CreateDuoWebRequest(IHttpWebRequestFactory webRequestFactory, string protocol, string path, HttpWebRequestMethod method)
@@ -112,9 +115,9 @@ namespace DuoVerificationService
         /// </summary>
         /// <param name="queryStringItems"></param>
         /// <returns></returns>
-        private static string CreateSafeQueryString(IEnumerable<KeyValuePair<string, string>> queryStringItems)
+        private static string CreateSafeQueryString(IEnumerable<KeyValuePair<string, string>> parameters)
         {
-            return string.Join("&", (from queryStringItem in queryStringItems let key = HttpUtility.UrlEncode(queryStringItem.Key, Encoding.UTF8).Replace("+", "%20").Replace("*", "%2A").Replace("%7E", "~") let value = HttpUtility.UrlEncode(queryStringItem.Value, Encoding.UTF8).Replace("+", "%20").Replace("*", "%2A").Replace("%7E", "~") select string.Format("{0}={1}", key, value)).ToArray());
+            return string.Join("&", parameters.Select(p => string.Format("{0}={1}", System.Web.HttpUtility.UrlEncode(p.Key), (System.Web.HttpUtility.UrlEncode(p.Value)))));
         }
 
         /// <summary>
@@ -157,10 +160,11 @@ namespace DuoVerificationService
         /// <param name="uri"></param>
         /// <param name="queryString"></param>
         /// <returns></returns>
-        private static String GetCanonRequest(HttpWebRequestMethod method, string host, string uri, string queryString)
+        private static String GetCanonRequest(DateTime date, HttpWebRequestMethod method, string host, string uri, string queryString)
         {
             var canon = new StringBuilder();
 
+            canon.Append(string.Format("{0}\n", date.ToUniversalTime().ToString(new System.Globalization.DateTimeFormatInfo().RFC1123Pattern)));
             canon.Append(string.Format("{0}\n", method.ToString().ToUpper()));
             canon.Append(string.Format("{0}\n", host.ToLower()));
             canon.Append(string.Format("{0}\n", uri));
